@@ -45,8 +45,11 @@ class SSCover:
         outs = get_layer_outs_new(self.model, test_inputs, self.skip_layers)
 
         total_pairs = 0
+        print(len(outs))
 
         for layer_index in range(len(outs) - 1):
+           
+            print("here")
             lower_layer_outs, upper_layer_outs = outs[layer_index], outs[layer_index + 1]
             lower_layer_fn, upper_layer_fn = self.layers[layer_index], self.layers[layer_index + 1]
 

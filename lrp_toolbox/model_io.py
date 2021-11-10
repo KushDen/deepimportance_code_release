@@ -402,6 +402,8 @@ def _write_keras_txt(source_path, destination_path, num_channels):
     prev_layer = None
     #TODO: SHOULD BE AUTOMATICALLY DETERMINED
     prev_filter_num = str(num_channels) #WARNING: THIS SHOULD BE 3 FOR THE CIFAR-10 DATASET
+    print(prev_filter_num)
+    print(json_obj['config'])
     for layer, json_elem in zip(model.layers, json_obj['config']['layers']):
         if json_elem['class_name'] == 'Activation':
             if json_elem['config']['activation'] == 'softmax':

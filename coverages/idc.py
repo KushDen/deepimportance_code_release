@@ -104,14 +104,14 @@ class ImportanceDrivenCoverage:
         print("Calculating IDC coverage")
         test_layer_outs = get_layer_outs_new(self.model, np.array(test_inputs))
 
-        coverage, covered_combinations, max_comb = measure_idc(self.model, self.model_name,
+        coverage, covered_combinations, max_comb, used_idxs = measure_idc(self.model, self.model_name,
                                                                 test_inputs, self.subject_layer,
                                                                 relevant_neurons,
                                                                 self.selected_class,
                                                                 test_layer_outs, qtized, is_conv,
                                                                 self.covered_combinations)
 
-        return coverage, covered_combinations, max_comb
+        return coverage, covered_combinations, max_comb, used_idxs
 
 
 def quantize(out_vectors, conv, relevant_neurons, n_clusters=3):
@@ -259,19 +259,24 @@ def measure_idc(model, model_name, test_inputs, subject_layer,
                                    covered_combinations=()):
 
     subject_layer = subject_layer - 1
+    test_idxs = []
     for test_idx in range(len(test_inputs)):
         if is_conv:
             lout = []
             for r in relevant_neurons:
+             
                 lout.append(np.mean(test_layer_outs[subject_layer][test_idx][...,r]))
         else:
             lout = test_layer_outs[subject_layer][test_idx][relevant_neurons]
 
         comb_to_add = determine_quantized_cover(lout, qtized)
+       
 
         if comb_to_add not in covered_combinations:
+           
+            test_idxs.append(test_idx)
             covered_combinations += (comb_to_add,)
-
+        
     max_comb = 1#q_granularity**len(relevant_neurons)
     for q in qtized:
         max_comb *= len(q)
@@ -279,7 +284,7 @@ def measure_idc(model, model_name, test_inputs, subject_layer,
     covered_num = len(covered_combinations)
     coverage = float(covered_num)/max_comb
 
-    return coverage*100, covered_combinations, max_comb
+    return coverage*100, covered_combinations, max_comb, test_idxs
 
 
 def find_relevant_neurons(kerasmodel, lrpmodel, inps, outs, subject_layer, \

@@ -34,15 +34,16 @@ class SurpriseAdequacy:
         if instance  == 'lsa':
 
             print(len(test_inputs))
-            print(len(self.surprise))
-
+            #print(len(self.surprise))
+            print("HERE")
+            
             target_lsa = fetch_lsa(self.model, self.train_inputs, test_inputs,
                                    dataset_name, self.layer_names,
                                    self.num_classes, self.is_classification,
                                    self.var_threshold, self.save_path, self.dataset)
 
 
-            coverage = get_sc(np.amin(target_lsa), self.upper_bound,
+            coverage, idxs = get_sc(np.amin(target_lsa), self.upper_bound,
                                 self.n_buckets, target_lsa)
 
 
@@ -53,11 +54,11 @@ class SurpriseAdequacy:
                                    self.num_classes, self.is_classification,
                                    self.save_path, self.dataset)
 
-            coverage = get_sc(np.amin(target_dsa), self.upper_bound,
+            coverage, idxs = get_sc(np.amin(target_dsa), self.upper_bound,
                                 self.n_buckets, target_dsa)
 
 
-        return coverage
+        return coverage, idxs
 
 
 
@@ -78,8 +79,10 @@ def _get_saved_path(base_path, dataset, dtype, layer_names):
         ats_path: File path of ats.
         pred_path: File path of pred (independent of layers)
     """
-
+    print("in get saved path")
     joined_layer_names = "_".join(layer_names)
+    
+    print("out from get saved path")
     return (
         os.path.join(
             base_path,
@@ -200,14 +203,18 @@ def _get_train_target_ats(model, x_train, x_target, target_name, layer_names,
         target_ats (list): ats of target set.
         target_pred (list): pred of target set.
     """
-
+    print("IN get train target")
     saved_train_path = _get_saved_path(save_path, dataset, "train", layer_names)
+    print(saved_train_path)
+    print(os.getcwd())
     if os.path.exists(saved_train_path[0]):
+        print("not here")
         print("Found saved {} ATs, skip serving".format("train"))
         # In case train_ats is stored in a disk
         train_ats = np.load(saved_train_path[0])
         train_pred = np.load(saved_train_path[1])
     else:
+        print("in else")
         train_ats, train_pred = get_ats(
             model,
             x_train,
@@ -302,7 +309,7 @@ def _get_kdes(train_ats, train_pred, class_matrix, is_classification, num_classe
         kdes (list): List of kdes per label if classification task.
         removed_cols (list): List of removed columns by variance threshold.
     """
-
+    eps = 1.e-10
     removed_cols = []
     if is_classification:
         for label in range(num_classes):
@@ -322,7 +329,8 @@ def _get_kdes(train_ats, train_pred, class_matrix, is_classification, num_classe
             if refined_ats.shape[0] == 0:
                 print("ats were removed by threshold {}".format(var_threshold))
                 break
-            kdes[label] = gaussian_kde(refined_ats)
+            print(kdes)
+            kdes[label] = gaussian_kde(refined_ats + eps)
 
     else:
         col_vectors = np.transpose(train_ats)
@@ -361,11 +369,13 @@ def fetch_lsa(model, x_train, x_target, target_name, layer_names, num_classes,
     Returns:
         lsa (list): List of lsa for each target input.
     """
+    print("IN FETCH LSA")
 
     prefix = "[" + target_name + "] "
     train_ats, train_pred, target_ats, target_pred = _get_train_target_ats(
         model, x_train, x_target, target_name, layer_names, num_classes,
         is_classification, save_path, dataset)
+    print("IN FETCH LSA2")
 
     class_matrix = {}
     if is_classification:
@@ -375,6 +385,7 @@ def fetch_lsa(model, x_train, x_target, target_name, layer_names, num_classes,
             class_matrix[label.argmax(axis=-1)].append(i)
         print('yes')
     print(class_matrix.keys())
+    print("IN FETCH LSA3")
 
     kdes, removed_cols = _get_kdes(train_ats, train_pred, class_matrix,
                                    is_classification, num_classes, var_threshold)
@@ -390,6 +401,7 @@ def fetch_lsa(model, x_train, x_target, target_name, layer_names, num_classes,
         kde = kdes[0]
         for at in target_ats:
             lsa.append(_get_lsa(kde, at, removed_cols))
+    print(len(lsa))
 
     return lsa
 
@@ -406,6 +418,15 @@ def get_sc(lower, upper, k, sa):
     Returns:
         cov (int): Surprise coverage.
     """
-
+    idxs = []
+    set_buckets = []
     buckets = np.digitize(sa, np.linspace(lower, upper, k))
-    return len(list(set(buckets))) / float(k) * 100
+    index = 0
+    for bucket in buckets:
+        if not bucket in set_buckets:
+            idxs.append(index)
+            set_buckets.append(bucket)
+        index += 1
+    
+    #return len(set_buckets) / float(k) * 100, idxs
+    return len(list(set(buckets))) * 100, idxs

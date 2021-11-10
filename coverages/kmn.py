@@ -128,4 +128,4 @@ class DeepGaugePercentCoverage:
                 percent_str(upper_activated, total),  # snac
                 lower_activated, upper_activated, total,
                 multisection_activated, upper_activated, lower_activated, total,
-                outs, kmnc_cnt, nbc_cnt, snac_cnt)
+                outs, kmnc_cnt, nbc_cnt, snac_cnt, low_used_inps, strong_used_inps, kmnc_used_inps)

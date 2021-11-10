@@ -43,21 +43,23 @@ class DeepGaugeLayerLevelCoverage:
         neuron_count_by_layer = {}
 
         layer_count = len(outs)
+        
+        used_inps = []
 
         inc_cnt_tkn = 0
-        for input_index in range(len(test_inputs)):  # out_for_input is output of layer for single input
+        for input_index in range(len(test_inputs)):  
             pattern = []
 
             inc_flag = False
-            for layer_index in range(layer_count):  # layer_out is output of layer for all inputs
-                out_for_input = outs[layer_index][input_index]
+            for layer_index in range(layer_count):  
+                out_for_input = outs[layer_index][input_index] # out_for_input is output of layer for single input
 
                 neuron_outs = np.zeros((out_for_input.shape[-1],))
                 neuron_count_by_layer[layer_index] = len(neuron_outs)
                 for i in range(out_for_input.shape[-1]):
                     neuron_outs[i] = np.mean(out_for_input[..., i])
 
-                top_k_neuron_indexes = (np.argsort(neuron_outs, axis=None)[-self.k:len(neuron_outs)])
+                top_k_neuron_indexes = (np.argsort(neuron_outs, axis=None)[-self.k:len(neuron_outs)]) #top k neurons indexes for layer
                 pattern.append(tuple(top_k_neuron_indexes))
 
                 for neuron_index in top_k_neuron_indexes:
@@ -69,10 +71,11 @@ class DeepGaugeLayerLevelCoverage:
 
             if inc_flag:
                 inc_cnt_tkn += 1
+                used_inps.append(input_index)
 
         neuron_count = sum(neuron_count_by_layer.values())
         covered = len(self.activation_table.keys())
 
         print(percent_str(covered, neuron_count))
         # TKNC                                                         #TKNP
-        return percent_str(covered, neuron_count), covered, neuron_count, len(self.pattern_set), outs, inc_cnt_tkn
+        return percent_str(covered, neuron_count), covered, neuron_count, len(self.pattern_set), outs, inc_cnt_tkn, used_inps

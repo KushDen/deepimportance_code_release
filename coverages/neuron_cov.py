@@ -47,8 +47,10 @@ class NeuronCoverage:
         outs = get_layer_outs_new(self.model, test_inputs, self.skip_layers)
         used_inps = []
         nc_cnt = 0
+        print(len(outs))
         for layer_index, layer_out in enumerate(outs):  # layer_out is output of layer for all inputs
             inp_cnt = 0
+            print(layer_index)
             for out_for_input in layer_out:  # out_for_input is output of layer for single input
                 out_for_input = self.scaler(out_for_input)
                 for neuron_index in range(out_for_input.shape[-1]):
@@ -65,4 +67,4 @@ class NeuronCoverage:
         covered = len([1 for c in self.activation_table.values() if c])
         total = len(self.activation_table.keys())
 
-        return percent_str(covered, total), covered, total, outs, nc_cnt
+        return percent_str(covered, total), covered, total, outs, nc_cnt, used_inps
